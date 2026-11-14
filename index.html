@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Meu Schedule</title>
+<meta name="description" content="Consulte sua escala de trabalho rapidamente, mesmo sem internet.">
+<meta name="theme-color" content="#0b6bcb">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Meu Schedule">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="./favicon.svg">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+
+<style>
+:root{--bg:#f4f6f8;--card:#fff;--tx:#14202b;--mu:#66727f;--ac:#0b6bcb;--ln:#dde3e9;--ok:#1a7f4b;--warn:#925900;box-sizing:border-box}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10161c;--card:#1a232c;--tx:#e8eef4;--mu:#93a1ae;--ac:#5aa9ff;--ln:#2a3641;--ok:#4cc38a;--warn:#e8b76a}}
+:root[data-theme="dark"]{--bg:#10161c;--card:#1a232c;--tx:#e8eef4;--mu:#93a1ae;--ac:#5aa9ff;--ln:#2a3641;--ok:#4cc38a;--warn:#e8b76a}
+body{margin:0 auto;max-width:680px;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:max(14px,env(safe-area-inset-top)) 14px max(28px,env(safe-area-inset-bottom))}
+h1{font-size:22px;margin:4px 0 8px}h2{font-size:17px;margin:8px 0}h3{font-size:15px;margin:7px 0}
+input,select,textarea{box-sizing:border-box;border:1px solid var(--ln);border-radius:10px;background:var(--card);color:var(--tx);padding:10px;font:inherit;max-width:100%}
+input[type=search]{width:100%;padding:13px;font-size:17px}input[type=date],select{min-height:42px}textarea{width:100%}
+button{background:var(--ac);color:white;border:0;border-radius:10px;padding:10px 12px;font-size:14px;cursor:pointer}button.g{background:transparent;color:var(--ac);border:1px solid var(--ln)}button.bad{color:#c04c4c}
+button:disabled{opacity:.55;cursor:wait}button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+.actions{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}.actions button{margin:0}.filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:14px;padding:13px;margin-top:12px}
+.nm{font-weight:700;font-size:17px}.ps,.m{color:var(--mu);font-size:13px}.m{margin:8px 0}.s{color:var(--ok);font-size:13px}.warn{color:var(--warn);font-size:13px}
+.r{display:flex;gap:12px;padding:8px 0;border-top:1px solid var(--ln)}.t{min-width:94px;font-variant-numeric:tabular-nums;font-weight:650;color:var(--ac)}.k{color:var(--mu);font-size:12px;text-transform:uppercase}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:10px 0}.field{display:flex;flex-direction:column;gap:3px}.wide{grid-column:1/-1}
+small{font-size:12px}label{font-size:13px}.photo{display:flex;gap:12px;align-items:flex-start}.thumb{width:84px;height:95px;object-fit:cover;border-radius:8px;background:var(--bg);border:1px solid var(--ln);flex-shrink:0}.photobody{flex:1;min-width:0}.photo .actions{margin:6px 0}.photobody strong{overflow-wrap:anywhere}
+[hidden]{display:none!important}details>summary{cursor:pointer;font-weight:650;padding:5px 0}
+#toast{min-height:1em}#out:empty{display:none}
+@media(max-width:420px){.thumb{width:65px;height:85px}.t{min-width:82px}.form-grid{grid-template-columns:1fr}.wide{grid-column:auto}}
+</style></head><body>
+<h1>📋 Meu Schedule</h1>
+<div class="m">Escalas por nome, dia, semana ou mês. Histórico salvo neste dispositivo.</div>
+<label for="q">Buscar funcionário ou ID</label>
+<input id="q" type="search" placeholder="Digite nome, sobrenome ou ID" autocomplete="off">
+<div class="filters"><label for="period">Período</label><select id="period"><option value="all">Histórico completo</option><option value="week">Semana</option><option value="month">Mês</option><option value="day">Dia</option></select><input id="anchor" type="date" aria-label="Data de referência" hidden></div>
+<div class="actions"><button id="up" type="button">📷 Adicionar fotos</button><button class="g" id="manualOpen" type="button">+ Adicionar horário</button><button class="g" id="install" type="button" hidden>⬇ Instalar app</button></div>
+<label for="photoDate">Data da escala (opcional, caso não esteja legível na foto)</label>
+<input id="photoDate" type="date"><input id="f" type="file" accept="image/*" multiple hidden>
+<div id="pwaStatus" class="m" role="status" aria-live="polite"></div>
+<div id="installHint" class="m" hidden>No iPhone, use Compartilhar → Adicionar à Tela de Início.</div>
+<div id="toast" class="m" role="status" aria-live="polite"></div>
+<div id="out"></div>
+<details id="manualBox" class="card" hidden><summary>Inserir horário manualmente</summary>
+<form id="manualForm"><div class="form-grid">
+<div class="field wide"><label for="manName">Nome completo *</label><input id="manName" required autocomplete="off"></div>
+<div class="field"><label for="manDate">Data *</label><input id="manDate" type="date" required></div>
+<div class="field"><label for="manId">ID (opcional)</label><input id="manId"></div>
+<div class="field"><label for="manStart">Início *</label><input id="manStart" type="time" required></div>
+<div class="field"><label for="manEnd">Fim *</label><input id="manEnd" type="time" required></div>
+<div class="field wide"><label for="manItem">Setor / atividade *</label><input id="manItem" required></div>
+<div class="field wide"><label for="manNote">Observação (opcional)</label><input id="manNote"></div>
+<div class="field wide"><label for="manPhoto">Vincular à foto (opcional)</label><select id="manPhoto"><option value="">Sem foto</option></select></div>
+</div><button type="submit">Salvar horário</button></form></details>
+<details class="card" id="photoPanel"><summary>📁 Fotos armazenadas (<span id="photoCount">0</span>)</summary><div id="photos"></div></details>
+<details class="card"><summary>🤖 Leitura automática de fotos (opcional)</summary>
+<div class="m">A leitura automática funciona com o servidor de IA configurado (Cloudflare Pages Function). Digite o token de acesso criado por você no servidor, não a chave da OpenAI. O token fica apenas nesta sessão.</div>
+<div class="field"><label for="aiToken">Token de acesso à leitura IA</label><input id="aiToken" type="password" autocomplete="off" placeholder="Token do seu servidor"></div>
+<div class="actions"><button id="saveToken" type="button" class="g">Usar token nesta sessão</button></div>
+</details>
+<details class="card"><summary>💾 Backup e armazenamento</summary>
+<div class="m">Os dados e as imagens ficam no IndexedDB deste navegador. Se limpar os dados do site ou trocar de celular, poderá perdê-los. Faça backups regularmente.</div>
+<div class="actions"><button id="export" type="button" class="g">Exportar backup completo</button><button id="importBtn" type="button" class="g">Restaurar backup</button><button id="persist" type="button" class="g">Pedir proteção do armazenamento</button></div>
+    <div class="m">Para reiniciar a base neste dispositivo, faça um backup antes. A opção abaixo só apaga os dados após confirmação dupla.</div>
+    <div class="actions"><button id="clearAll" type="button" class="g bad">🗑️ Zerar histórico local (fotos e horários)</button></div><input id="backupFile" type="file" accept="application/json,.json" hidden><div id="storageInfo" class="m"></div>
+</details>
+<div class="m">Versão limpa: nenhum funcionário ou horário pré-cadastrado. Os novos registros ficam salvos no IndexedDB deste navegador. A leitura automática de fotos exige uma integração de IA configurada; as fotos são salvas mesmo sem ela.</div>
+<script src="./app.js" defer></script></body></html>
